@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controle de Fiado</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f4f4f4; }
+    .container { padding:20px; }
+    h2 { margin-top:0; }
+    input, button { display:block; margin:10px 0; padding:10px; width:100%; }
+    #menu { 
+      position:fixed; bottom:0; left:0; right:0; 
+      background:#222; color:white; display:flex; 
+      justify-content:space-around; padding:10px 0;
+    }
+    #menu button { background:none; border:none; color:white; font-size:16px; }
+    .section { display:none; }
+    .active { display:block; }
+    #relatorio { background:white; padding:10px; border-radius:6px; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Seção Clientes -->
+    <div id="clientes" class="section active">
+      <h2>Cadastrar Cliente</h2>
+      <input type="number" id="numeroCliente" placeholder="Número do cliente">
+      <input type="text" id="nomeCliente" placeholder="Nome do cliente">
+      <button onclick="cadastrarCliente()">Cadastrar</button>
+    </div>
+
+    <!-- Seção Vendas -->
+    <div id="vendas" class="section">
+      <h2>Registrar Venda</h2>
+      <input type="number" id="numeroVenda" placeholder="Número do cliente">
+      <input type="text" id="itemVenda" placeholder="Item">
+      <input type="number" id="quantidadeVenda" placeholder="Quantidade">
+      <input type="number" id="valorVenda" placeholder="Valor (R$)">
+      <button onclick="registrarVenda()">Registrar</button>
+    </div>
+
+    <!-- Seção Devedores -->
+    <div id="devedores" class="section">
+      <h2>Relatório do Cliente</h2>
+      <input type="number" id="numeroRelatorio" placeholder="Número do cliente">
+      <button onclick="gerarRelatorio()">Gerar Relatório</button>
+      <div id="relatorio"></div>
+    </div>
+  </div>
+
+  <!-- Menu fixo -->
+  <div id="menu">
+    <button onclick="mostrar('clientes')">Clientes</button>
+    <button onclick="mostrar('vendas')">Vendas</button>
+    <button onclick="mostrar('devedores')">Devedores</button>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSqu1B8sb6PTXP3ezoYYgbojBiF0PAYJx4zFlCnAHh9ZXmKQ7IRdp8be0whIYd0oBZfw/exec";
+
+    function mostrar(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    async function cadastrarCliente() {
+      let numero = document.getElementById("numeroCliente").value;
+      let nome = document.getElementById("nomeCliente").value;
+      if (!numero || !nome) { alert("Preencha os campos!"); return; }
+
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: new URLSearchParams({ numero, nome })
+      });
+      alert("Cliente cadastrado!");
+    }
+
+    async function registrarVenda() {
+      let numero = document.getElementById("numeroVenda").value;
+      let item = document.getElementById("itemVenda").value;
+      let quantidade = document.getElementById("quantidadeVenda").value;
+      let valor = document.getElementById("valorVenda").value;
+      if (!numero || !item || !quantidade || !valor) { alert("Preencha os campos!"); return; }
+
+      await fetch(SCRIPT_URL, {
+        method: "POST",
+        body: new URLSearchParams({ numero, item, quantidade, valor })
+      });
+      alert("Venda registrada!");
+    }
+
+    async function gerarRelatorio() {
+      let numero = document.getElementById("numeroRelatorio").value;
+      if (!numero) { alert("Informe o número do cliente!"); return; }
+
+      let res = await fetch(SCRIPT_URL + "?numero=" + numero);
+      let dados = await res.json();
+
+      if (dados.length === 0) {
+        document.getElementById("relatorio").innerHTML = "Nenhuma compra encontrada.";
+        return;
+      }
+
+      let total = 0;
+      let html = "<h3>Compras:</h3><ul>";
+      dados.forEach(d => {
+        html += `<li>${d.data} - ${d.item} (${d.quantidade}x) R$ ${d.valor}</li>`;
+        total += d.valor * d.quantidade;
+      });
+      html += "</ul><p><b>Total: R$ " + total.toFixed(2) + "</b></p>";
+
+      document.getElementById("relatorio").innerHTML = html;
+    }
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js");
+    }
+  </script>
+</body>
+</html>
